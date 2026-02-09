@@ -19,7 +19,7 @@ pipeline {
             sh 'npm install'
           }
         }
-        sh 'npm run build'
+        sh 'npm test'
       }
     }
     stage('Test-Sonarqube') {
