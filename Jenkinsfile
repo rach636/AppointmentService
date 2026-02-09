@@ -40,6 +40,13 @@ pipeline {
         }
       }
     }
+    stage('SonarQube Analysis') {
+      steps {
+        withSonarQubeEnv('YourSonarQubeServerName') {
+          sh 'sonar-scanner'
+        }
+      }
+    }
     stage('DockerBuild Snapshot') {
       steps {
         script {
