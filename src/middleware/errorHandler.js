@@ -1,31 +1,18 @@
-const errorHandler = (err, req, res, next) => {const { errorHandler: handler, notFoundHandler } = require('../middleware/errorHandler');
+// Centralized error handler middleware for Express
+function errorHandler(err, req, res, next) {
+  const statusCode = err.statusCode || 500;
+  res.status(statusCode).json({
+    message: err.message || 'Internal Server Error',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
+}
 
+// 404 Not Found handler
+function notFoundHandler(req, res, next) {
+  res.status(404).json({ message: 'Not Found' });
+}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-};  notFoundHandler  errorHandler,module.exports = {};  });    message: `Route ${req.path} not found`    statusCode: 404,    success: false,  res.status(404).json({const notFoundHandler = (req, res) => {};  });    timestamp: new Date().toISOString()    message,    statusCode,    success: false,  res.status(statusCode).json({  const message = err.message || 'Internal Server Error';  const statusCode = err.statusCode || 500;  console.error('Error:', err);
 module.exports = {
-  errorHandler: handler,
+  errorHandler,
   notFoundHandler
 };
