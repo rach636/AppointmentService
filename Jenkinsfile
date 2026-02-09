@@ -54,25 +54,24 @@ pipeline {
         }
       }
     }
-    stage('DockerBuild Snapshot') {
+    stage('Docker Build') {
       steps {
         script {
           dockerImage = docker.build("${ECR_SNAPSHOT}:${env.BUILD_NUMBER}")
         }
       }
     }
-    stage('Aqua Trivy Scan') {
+    stage('Trivy Scan') {
       steps {
-        sh 'trivy image --exit-code 1 --severity HIGH,CRITICAL ${ECR_SNAPSHOT}:${env.BUILD_NUMBER} || true'
+        sh "trivy image --exit-code 1 --severity HIGH,CRITICAL ${ECR_SNAPSHOT}:${env.BUILD_NUMBER} || true"
       }
     }
-    stage('Snapshot to Release') {
+    stage('Push to ECR Snapshot') {
       steps {
         script {
-          sh "docker tag ${ECR_SNAPSHOT}:${env.BUILD_NUMBER} ${ECR_RELEASE}:release"
           withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-ecr-jenkins']]) {
             sh "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin 147997138755.dkr.ecr.us-east-1.amazonaws.com"
-            sh "docker push ${ECR_RELEASE}:release"
+            sh "docker push ${ECR_SNAPSHOT}:${env.BUILD_NUMBER}"
           }
         }
       }
