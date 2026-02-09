@@ -2,7 +2,7 @@ pipeline {
 
   agent any
   environment {
-    NODE_ENV = 'production'
+    // NODE_ENV = 'production'  // Removed to allow devDependencies install
     AWS_REGION = 'us-east-1'
     ECR_SNAPSHOT = '147997138755.dkr.ecr.us-east-1.amazonaws.com/snapshot/appointmentservice'
     ECR_RELEASE = '147997138755.dkr.ecr.us-east-1.amazonaws.com/appointmentservice'
@@ -14,13 +14,8 @@ pipeline {
       steps {
         // Clean up node_modules to avoid stale state
         sh 'rm -rf node_modules'
-        script {
-          if (fileExists('package-lock.json')) {
-            sh 'npm ci'
-          } else {
-            sh 'npm install'
-          }
-        }
+        // Force NODE_ENV=development for install
+        sh 'export NODE_ENV=development && npm install'
         // Always install supertest to guarantee presence
         sh 'npm install --save-dev supertest'
         // Debug: List supertest directory after install
