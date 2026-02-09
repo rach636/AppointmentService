@@ -43,13 +43,15 @@ pipeline {
     stage('SonarQube Analysis') {
       steps {
         withCredentials([string(credentialsId: 'SONAR_TOKEN_APPOINTMENT', variable: 'SONAR_TOKEN')]) {
-          sh '''
-            sonar-scanner \
-              -Dsonar.projectKey=appointment-service \
-              -Dsonar.sources=. \
-              -Dsonar.host.url=http://100.50.131.6:9000 \
-              -Dsonar.login=$SONAR_TOKEN
-          '''
+          withSonarQubeEnv('YourSonarQubeServerName') {
+            sh '''
+              sonar-scanner \
+                -Dsonar.projectKey=appointment-service \
+                -Dsonar.sources=. \
+                -Dsonar.host.url=http://100.50.131.6:9000 \
+                -Dsonar.login=$SONAR_TOKEN
+            '''
+          }
         }
       }
     }
