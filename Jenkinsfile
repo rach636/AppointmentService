@@ -19,13 +19,8 @@ pipeline {
             sh 'npm install'
           }
         }
-        // Ensure supertest is present
-        script {
-          def supertestExists = sh(script: "npm ls supertest || true", returnStatus: true) == 0
-          if (!supertestExists) {
-            sh 'npm install --save-dev supertest'
-          }
-        }
+        // Force install supertest after install to guarantee presence
+        sh 'npm install --save-dev supertest'
       }
     }
     stage('Lint') {
