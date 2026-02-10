@@ -20,12 +20,12 @@ pipeline {
     }
     stage('TEST') {
       parallel {
-        Lint: {
+        stage('Lint') {
           steps {
             sh 'npm run lint'
           }
         }
-        UnitTest: {
+        stage('UnitTest') {
           steps {
             script {
               try {
@@ -36,7 +36,7 @@ pipeline {
             }
           }
         }
-        SonarQube: {
+        stage('SonarQube') {
           steps {
             withCredentials([string(credentialsId: 'SONAR_TOKEN_APPOINTMENT', variable: 'SONAR_TOKEN')]) {
               sh '''
