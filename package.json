@@ -11,9 +11,7 @@
     "db:migrate": "sequelize-cli db:migrate",
     "db:migrate:undo": "sequelize-cli db:migrate:undo:all",
     "lint": "eslint src --fix",
-    "format": "prettier --write \"src/**/*.js\"",
-    "docker:build": "docker build -t appointment-service:latest .",
-    "docker:run": "docker-compose up -d"
+    "format": "prettier --write \"src/**/*.js\""
   },
   "keywords": ["hospital", "appointment", "microservice", "healthcare"],
   "author": "Your Organization",
