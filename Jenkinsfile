@@ -16,7 +16,7 @@ pipeline {
         APP_NAME = 'appointment-service'
     }
 
-options {
+    options {
         buildDiscarder(logRotator(numToKeepStr: '10'))
         timeout(time: 1, unit: 'HOURS')
     }
@@ -30,43 +30,24 @@ options {
             }
         }
 
-        stage('Generate package-lock.json') {
+        stage('Generate package-lock.json & Update Node Modules') {
             steps {
-                echo "Checking package-lock.json..."
-
+                echo "Updating Node.js dependencies inside Docker..."
                 sh '''
-                if [ ! -f package-lock.json ]; then
-                    echo "Generating lock file..."
-                    docker run --rm \
-                      -v $(pwd):/app \
-                      -w /app \
-                      node:20-alpine \
-                      npm install --package-lock-only
-                else
-                    echo "package-lock.json already exists"
-                fi
+                docker run --rm -v $(pwd):/app -w /app node:20-alpine sh -c "\
+                    apk add --no-cache bash coreutils && \
+                    npm install -g npm-check-updates && \
+                    ncu -u && \
+                    npm install --production --no-audit --no-fund && \
+                    npm audit fix --production || true \
+                "
                 '''
             }
         }
 
-        stage('Update Node Dependencies') {
-    steps {
-        echo "Updating Node.js dependencies safely..."
-        sh '''
-        docker run --rm -v $(pwd):/app -w /app node:20-alpine sh -c "\
-            apk add --no-cache bash coreutils && \
-            npm install -g npm-check-updates && \
-            ncu -u && \
-            npm install --production --no-audit --no-fund && \
-            npm audit fix --production || true \
-        "
-        '''
-    }
-}
         stage('Gitleaks Scan') {
             steps {
                 echo "Running Gitleaks scan..."
-
                 sh '''
                 docker run --rm \
                   -v $(pwd):/repo \
@@ -81,7 +62,6 @@ options {
         stage('SonarQube Analysis') {
             steps {
                 echo "Running SonarQube analysis..."
-
                 withSonarQubeEnv('sonarcube-app') {
                     sh '''
                     sonar-scanner \
@@ -95,8 +75,7 @@ options {
 
         stage('Build Docker Image') {
             steps {
-                echo "Building Docker image..."
-
+                echo "Building Docker image with patched dependencies..."
                 sh '''
                 docker build -t ${ECR_URI}:${IMAGE_TAG} .
                 docker tag ${ECR_URI}:${IMAGE_TAG} ${ECR_URI}:latest
@@ -107,7 +86,6 @@ options {
         stage('Trivy Scan') {
             steps {
                 echo "Scanning Docker image with Trivy..."
-
                 sh '''
                 docker run --rm \
                   -v /var/run/docker.sock:/var/run/docker.sock \
@@ -123,7 +101,6 @@ options {
         stage('Push Image to ECR') {
             steps {
                 echo "Logging into ECR and pushing image..."
-
                 sh '''
                 aws ecr get-login-password --region ${AWS_REGION} \
                 | docker login --username AWS --password-stdin ${ECR_REGISTRY}
@@ -133,14 +110,11 @@ options {
                 '''
             }
         }
-
     }
 
     post {
-
         always {
             echo "Cleaning up Docker images..."
-
             sh '''
             docker rmi ${ECR_URI}:${IMAGE_TAG} || true
             docker rmi ${ECR_URI}:latest || true
