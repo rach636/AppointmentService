@@ -1,7 +1,7 @@
 # Multi-purpose Dockerfile for AppointmentService
 # Uses Node 18 (Alpine) and runs the app as a non-root user
 
-FROM node:18-alpine
+FROM node:20-alpine3.19
 
 # Create app directory
 WORKDIR /usr/src/app
