@@ -52,8 +52,9 @@ pipeline {
                 script {
                     echo "Installing dependencies and building..."
                     sh '''
+                      node --version
+                      npm --version
                       npm install
-                      npm run build
                   '''
                 }
             }
