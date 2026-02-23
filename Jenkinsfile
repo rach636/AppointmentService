@@ -50,18 +50,21 @@ options {
         }
 
         stage('Install Dependencies') {
-            steps {
-                echo "Installing dependencies..."
+    steps {
+        echo "Installing dependencies and patching Node.js vulnerabilities..."
 
-                sh '''
-                docker run --rm \
-                  -v $(pwd):/app \
-                  -w /app \
-                  node:20-alpine \
-                  npm ci --omit=dev
-                '''
-            }
-        }
+        sh '''
+        docker run --rm \
+          -v $(pwd):/app \
+          -w /app \
+          node:20-alpine sh -c "\
+            apk update && apk upgrade --no-cache && \
+            npm ci --omit=dev && \
+            npm audit fix --production \
+          "
+        '''
+    }
+}
 
         stage('Gitleaks Scan') {
             steps {
