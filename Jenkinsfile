@@ -74,30 +74,38 @@ pipeline {
         }
 
         stage('Build Docker Image') {
-            steps {
-                echo "Building Docker image with patched dependencies..."
-                sh '''
-                docker build -t ${ECR_URI}:${IMAGE_TAG} .
-                docker tag ${ECR_URI}:${IMAGE_TAG} ${ECR_URI}:latest
-                '''
-            }
-        }
+    steps {
+        echo "Building Docker image..."
+        sh '''
+        # Ensure we are in the correct Jenkins workspace
+        WORKDIR=$(pwd)
+        echo "Building Docker image from $WORKDIR"
 
-        stage('Trivy Scan') {
-            steps {
-                echo "Scanning Docker image with Trivy..."
-                sh '''
-                docker run --rm \
-                  -v /var/run/docker.sock:/var/run/docker.sock \
-                  aquasec/trivy:latest image \
-                  --severity HIGH,CRITICAL \
-                  --exit-code 1 \
-                  --no-progress \
-                  ${ECR_URI}:${IMAGE_TAG}
-                '''
-            }
-        }
+        # Build and tag the image properly
+        docker build -t ${ECR_URI}:${IMAGE_TAG} $WORKDIR
+        docker tag ${ECR_URI}:${IMAGE_TAG} ${ECR_URI}:latest
 
+        # Verify the image is built
+        docker images | grep ${ECR_REPOSITORY}
+        '''
+    }
+}
+
+stage('Trivy Scan') {
+    steps {
+        echo "Scanning Docker image with Trivy..."
+        sh '''
+        # Scan the correctly tagged image
+        docker run --rm \
+          -v /var/run/docker.sock:/var/run/docker.sock \
+          aquasec/trivy:latest image \
+          --severity HIGH,CRITICAL \
+          --exit-code 1 \
+          --no-progress \
+          ${ECR_URI}:${IMAGE_TAG}
+        '''
+    }
+}
         stage('Push Image to ECR') {
             steps {
                 echo "Logging into ECR and pushing image..."
