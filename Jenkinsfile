@@ -52,11 +52,9 @@ pipeline {
                 script {
                     echo "Installing dependencies and building..."
                     sh '''
-                        node --version
-                        npm --version
-                        npm ci
-                        npm run build
-                    '''
+                      npm install
+                      npm run build
+                  '''
                 }
             }
         }
