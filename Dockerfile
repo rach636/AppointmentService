@@ -1,27 +1,27 @@
-# Multi-purpose Dockerfile for AppointmentService
-# Uses Node 18 (Alpine) and runs the app as a non-root user
-
 FROM node:20-alpine3.19
+
+# Patch Alpine OS packages first to reduce vulnerabilities
+RUN apk update && apk upgrade --no-cache
 
 # Create app directory
 WORKDIR /usr/src/app
 
-# Install only production dependencies first
+# Copy package files first (for Docker caching)
 COPY package.json package-lock.json* ./
+
+# Install only production Node dependencies
 RUN npm ci --production --no-audit --no-fund
 
-# Copy source
+# Copy application source
 COPY . .
 
 # Use a non-root user
 RUN addgroup -S app && adduser -S app -G app
 USER app
 
-# Environment defaults
 ENV NODE_ENV=production
 ENV PORT=3000
 
 EXPOSE 3000
 
-# Start the service
 CMD ["npm", "start"]
