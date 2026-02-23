@@ -16,13 +16,14 @@ pipeline {
         APP_NAME = 'appointment-service'
     }
 
-    options {
+options {
         buildDiscarder(logRotator(numToKeepStr: '10'))
         timeout(time: 1, unit: 'HOURS')
     }
 
     stages {
-         stage('Clone Repository') {
+
+        stage('Clone Repository') {
             steps {
                 echo "Cloning repository..."
                 git branch: 'main', url: "${GIT_REPO}"
@@ -36,10 +37,28 @@ pipeline {
                 sh '''
                 if [ ! -f package-lock.json ]; then
                     echo "Generating lock file..."
-                    docker run --rm -v $(pwd):/app -w /app node:20-alpine npm install --package-lock-only
+                    docker run --rm \
+                      -v $(pwd):/app \
+                      -w /app \
+                      node:20-alpine \
+                      npm install --package-lock-only
                 else
-                    echo "Lock file exists."
+                    echo "package-lock.json already exists"
                 fi
+                '''
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                echo "Installing dependencies..."
+
+                sh '''
+                docker run --rm \
+                  -v $(pwd):/app \
+                  -w /app \
+                  node:20-alpine \
+                  npm ci --omit=dev
                 '''
             }
         }
@@ -50,82 +69,88 @@ pipeline {
 
                 sh '''
                 docker run --rm \
-                -v $(pwd):/repo \
-                zricethezav/gitleaks:latest detect \
-                --source /repo \
-                --exit-code 1 \
-                --verbose
+                  -v $(pwd):/repo \
+                  zricethezav/gitleaks:latest detect \
+                  --source /repo \
+                  --exit-code 1 \
+                  --verbose
                 '''
             }
         }
 
-        stage('Install Dependencies') {
+        stage('SonarQube Analysis') {
             steps {
-                echo "Installing dependencies..."
+                echo "Running SonarQube analysis..."
 
-                sh '''
-                docker run --rm -v $(pwd):/app -w /app node:20-alpine npm ci --omit=dev
-                '''
-            }
-        }
-        stage('SonarQube') {
-    steps {
-        script {
-            echo "Running SonarQube analysis..."
-            withSonarQubeEnv('sonarcube-app') {
-                sh '''
-                sonar-scanner \
-                  -Dsonar.projectKey=AppointmentService \
-                  -Dsonar.sources=src \
-                  -Dsonar.projectVersion=${BUILD_NUMBER}
-                '''
-            }
-        }
-    }
-}
-
-        stage('Trivy (Build and Scan)') {
-            steps {
-                script {
-                    echo "Building Docker image and scanning with Trivy..."
+                withSonarQubeEnv('sonarcube-app') {
                     sh '''
-                        docker build -t ${ECR_URI}:${IMAGE_TAG} .
-                        docker tag ${ECR_URI}:${IMAGE_TAG} ${ECR_URI}:latest
-
-                        docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
-                            aquasec/trivy image --severity HIGH,CRITICAL \
-                            --exit-code 1 \
-                            ${ECR_URI}:${IMAGE_TAG}
+                    sonar-scanner \
+                      -Dsonar.projectKey=AppointmentService \
+                      -Dsonar.sources=src \
+                      -Dsonar.projectVersion=${BUILD_NUMBER}
                     '''
                 }
             }
         }
 
-        stage('Docker Login and Push to ECR') {
+        stage('Build Docker Image') {
             steps {
-                script {
-                    echo "Pushing Docker image to ECR..."
-                    sh '''
-                        aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
+                echo "Building Docker image..."
 
-                        docker push ${ECR_URI}:${IMAGE_TAG}
-                        docker push ${ECR_URI}:latest
-                    '''
-                }
+                sh '''
+                docker build -t ${ECR_URI}:${IMAGE_TAG} .
+                docker tag ${ECR_URI}:${IMAGE_TAG} ${ECR_URI}:latest
+                '''
             }
         }
+
+        stage('Trivy Scan') {
+            steps {
+                echo "Scanning Docker image with Trivy..."
+
+                sh '''
+                docker run --rm \
+                  -v /var/run/docker.sock:/var/run/docker.sock \
+                  aquasec/trivy:latest image \
+                  --severity HIGH,CRITICAL \
+                  --exit-code 1 \
+                  --no-progress \
+                  ${ECR_URI}:${IMAGE_TAG}
+                '''
+            }
+        }
+
+        stage('Push Image to ECR') {
+            steps {
+                echo "Logging into ECR and pushing image..."
+
+                sh '''
+                aws ecr get-login-password --region ${AWS_REGION} \
+                | docker login --username AWS --password-stdin ${ECR_REGISTRY}
+
+                docker push ${ECR_URI}:${IMAGE_TAG}
+                docker push ${ECR_URI}:latest
+                '''
+            }
+        }
+
     }
 
     post {
+
         always {
-                script {
-                echo "Cleaning up Docker images..."
-                sh 'docker rmi ${ECR_URI}:${IMAGE_TAG} || true'
-            }
+            echo "Cleaning up Docker images..."
+
+            sh '''
+            docker rmi ${ECR_URI}:${IMAGE_TAG} || true
+            docker rmi ${ECR_URI}:latest || true
+            '''
         }
+
         success {
             echo "Pipeline executed successfully for ${APP_NAME}"
         }
+
         failure {
             echo "Pipeline failed for ${APP_NAME}"
         }
