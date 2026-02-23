@@ -1,29 +1,28 @@
 FROM node:20-alpine3.19
 
-# Patch Alpine OS packages to reduce vulnerabilities
-RUN apk update && apk upgrade --no-cache
+# Patch OS first
+RUN apk update && apk upgrade --no-cache bash coreutils
 
-# Create app directory
 WORKDIR /usr/src/app
 
-# Copy package files first (for Docker layer caching)
+# Copy package files
 COPY package.json package-lock.json* ./
 
-# Install only production Node dependencies
-# AND automatically fix vulnerabilities
-RUN npm ci --production && \
+# Update Node modules and fix vulnerabilities inside the image
+RUN npm install -g npm-check-updates && \
+    ncu -u && \
+    npm install --production --no-audit --no-fund && \
     npm audit fix --production || true
 
-# Copy application source
+# Copy source code
 COPY . .
 
-# Use a non-root user
+# Non-root user
 RUN addgroup -S app && adduser -S app -G app
 USER app
 
 ENV NODE_ENV=production
 ENV PORT=3000
-
 EXPOSE 3000
 
 CMD ["npm", "start"]
