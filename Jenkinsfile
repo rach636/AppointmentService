@@ -49,19 +49,17 @@ options {
             }
         }
 
-        stage('Install Dependencies') {
+        stage('Update Node Dependencies') {
     steps {
-        echo "Installing dependencies and fixing Node.js vulnerabilities..."
-
+        echo "Updating Node.js dependencies safely..."
         sh '''
-        docker run --rm \
-          -v $(pwd):/app \
-          -w /app \
-          node:20-alpine sh -c "\
-            apk update && apk upgrade --no-cache && \
-            npm ci --omit=dev && \
+        docker run --rm -v $(pwd):/app -w /app node:20-alpine sh -c "\
+            apk add --no-cache bash coreutils && \
+            npm install -g npm-check-updates && \
+            ncu -u && \
+            npm install --production --no-audit --no-fund && \
             npm audit fix --production || true \
-          "
+        "
         '''
     }
 }
