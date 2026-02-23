@@ -61,19 +61,20 @@ pipeline {
         }
 
         stage('SonarQube') {
-            steps {
-                script {
-                    echo "Running SonarQube analysis..."
-                    withSonarQubeEnv('sonarcube-app') {
-                     sh '''
-                    sonar-scanner \
-                      -Dsonar.projectKey=AppointmentService \
-                      -Dsonar.sources=src \
-                      -Dsonar.projectVersion=${BUILD_NUMBER}
-                     '''
-                }
+    steps {
+        script {
+            echo "Running SonarQube analysis..."
+            withSonarQubeEnv('sonarcube-app') {
+                sh '''
+                sonar-scanner \
+                  -Dsonar.projectKey=AppointmentService \
+                  -Dsonar.sources=src \
+                  -Dsonar.projectVersion=${BUILD_NUMBER}
+                '''
             }
         }
+    }
+}
 
         stage('Trivy (Build and Scan)') {
             steps {
