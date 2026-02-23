@@ -22,44 +22,52 @@ pipeline {
     }
 
     stages {
-        stage('Clone') {
+         stage('Clone Repository') {
             steps {
-                script {
-                    echo "Cloning repository..."
-                    git branch: 'main', 
-                        url: "${GIT_REPO}"
-                }
+                echo "Cloning repository..."
+                git branch: 'main', url: "${GIT_REPO}"
             }
         }
 
-        stage('Gitleak') {
+        stage('Generate package-lock.json') {
             steps {
-                script {
-                    echo "Running Gitleak for secret scanning..."
-                    sh '''
-                        docker run --rm -v $(pwd):/path zricethezav/gitleaks:latest detect --source /path --verbose
-                        if [ $? -ne 0 ]; then
-                            echo "Secrets found by Gitleak! Pipeline will fail."
-                            exit 1
-                        fi
-                    '''
-                }
+                echo "Checking package-lock.json..."
+
+                sh '''
+                if [ ! -f package-lock.json ]; then
+                    echo "Generating lock file..."
+                    docker run --rm -v $(pwd):/app -w /app node:20-alpine npm install --package-lock-only
+                else
+                    echo "Lock file exists."
+                fi
+                '''
             }
         }
 
-        stage('NPM') {
+        stage('Gitleaks Scan') {
             steps {
-                script {
-                    echo "Installing dependencies and building..."
-                    sh '''
-                      node --version
-                      npm --version
-                      npm install
-                  '''
-                }
+                echo "Running Gitleaks scan..."
+
+                sh '''
+                docker run --rm \
+                -v $(pwd):/repo \
+                zricethezav/gitleaks:latest detect \
+                --source /repo \
+                --exit-code 1 \
+                --verbose
+                '''
             }
         }
 
+        stage('Install Dependencies') {
+            steps {
+                echo "Installing dependencies..."
+
+                sh '''
+                docker run --rm -v $(pwd):/app -w /app node:20-alpine npm ci --omit=dev
+                '''
+            }
+        }
         stage('SonarQube') {
     steps {
         script {
