@@ -1,16 +1,18 @@
 FROM node:20-alpine3.19
 
-# Patch Alpine OS packages first to reduce vulnerabilities
+# Patch Alpine OS packages to reduce vulnerabilities
 RUN apk update && apk upgrade --no-cache
 
 # Create app directory
 WORKDIR /usr/src/app
 
-# Copy package files first (for Docker caching)
+# Copy package files first (for Docker layer caching)
 COPY package.json package-lock.json* ./
 
 # Install only production Node dependencies
-RUN npm ci --production --no-audit --no-fund
+# AND automatically fix vulnerabilities
+RUN npm ci --production && \
+    npm audit fix --production || true
 
 # Copy application source
 COPY . .
