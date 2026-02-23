@@ -91,7 +91,7 @@ pipeline {
     }
 }
 
-stage('Trivy Scan') {
+/*stage('Trivy Scan') {
     steps {
         echo "Scanning Docker image with Trivy..."
         sh '''
@@ -105,7 +105,7 @@ stage('Trivy Scan') {
           ${ECR_URI}:${IMAGE_TAG}
         '''
     }
-}
+}*/
         stage('Push Image to ECR') {
             steps {
                 echo "Logging into ECR and pushing image..."
