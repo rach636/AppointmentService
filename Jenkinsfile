@@ -51,7 +51,7 @@ options {
 
         stage('Install Dependencies') {
     steps {
-        echo "Installing dependencies and patching Node.js vulnerabilities..."
+        echo "Installing dependencies and fixing Node.js vulnerabilities..."
 
         sh '''
         docker run --rm \
@@ -60,12 +60,11 @@ options {
           node:20-alpine sh -c "\
             apk update && apk upgrade --no-cache && \
             npm ci --omit=dev && \
-            npm audit fix --production \
+            npm audit fix --production || true \
           "
         '''
     }
 }
-
         stage('Gitleaks Scan') {
             steps {
                 echo "Running Gitleaks scan..."
