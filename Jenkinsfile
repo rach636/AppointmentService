@@ -65,13 +65,12 @@ pipeline {
                 script {
                     echo "Running SonarQube analysis..."
                     withSonarQubeEnv('sonarcube-app') {
-                        sh '''
-                            sonar-scanner \
-                                -Dsonar.projectKey=AppointmentService \
-                                -Dsonar.sources=src \
-                                -Dsonar.projectVersion=${BUILD_NUMBER}
-                        '''
-                    }
+                     sh '''
+                    sonar-scanner \
+                      -Dsonar.projectKey=AppointmentService \
+                      -Dsonar.sources=src \
+                      -Dsonar.projectVersion=${BUILD_NUMBER}
+                     '''
                 }
             }
         }
