@@ -1,4 +1,4 @@
-FROM node:20-alpine3.19
+FROM node:20.11-alpine
 
 # Patch OS first
 RUN apk update && apk upgrade --no-cache bash coreutils
