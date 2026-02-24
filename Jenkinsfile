@@ -30,21 +30,6 @@ pipeline {
             }
         }
 
-        stage('Generate package-lock.json & Update Node Modules') {
-            steps {
-                echo "Updating Node.js dependencies inside Docker..."
-                sh '''
-                docker run --rm -v $(pwd):/app -w /app node:20-alpine sh -c "\
-                    apk add --no-cache bash coreutils && \
-                    npm install -g npm-check-updates && \
-                    ncu -u && \
-                    npm install --production --no-audit --no-fund && \
-                    npm audit fix --production || true \
-                "
-                '''
-            }
-        }
-
         stage('Gitleaks Scan') {
             steps {
                 echo "Running Gitleaks scan..."
