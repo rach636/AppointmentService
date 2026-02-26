@@ -1,12 +1,18 @@
-FROM node:18-alpine
+FROM node:20-bookworm-slim
+
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm install --production
+RUN npm install --omit=dev --no-audit --no-fund && npm cache clean --force
 
 COPY . .
+
+USER node
 
 EXPOSE 3002
 
