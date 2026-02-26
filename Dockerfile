@@ -1,23 +1,16 @@
-FROM node:20.11-alpine AS deps
+FROM node:18-alpine
 
-WORKDIR /usr/src/app
-COPY package.json package-lock.json* ./
-RUN npm install --omit=dev --no-audit --no-fund && npm cache clean --force
+WORKDIR /app
 
-FROM node:20.11-alpine
+COPY package*.json ./
 
-RUN apk update && apk upgrade --no-cache
+RUN npm install --production
 
-WORKDIR /usr/src/app
-COPY --from=deps /usr/src/app/node_modules ./node_modules
 COPY . .
 
-RUN addgroup -S app && adduser -S app -G app && chown -R app:app /usr/src/app
-USER app
+EXPOSE 3002
 
-ENV NODE_ENV=production
-ENV PORT=3000
-
-EXPOSE 3000
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:3002/api/v1/health', (r) => {if (r.statusCode !== 200) process.exit(1)})"
 
 CMD ["npm", "start"]
